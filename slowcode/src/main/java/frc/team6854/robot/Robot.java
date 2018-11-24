@@ -67,6 +67,7 @@ public class Robot extends IterativeRobot {
 	String gameData = "";
 	String startSide = "";
 	SendableChooser<String> autoChooser = new SendableChooser(); // allows for user selection in dashboard
+	SendableChooser<String> liftEnable = new SendableChooser();
 
 	//Automous Variables
 	double lastTime = 0;
@@ -93,7 +94,11 @@ public class Robot extends IterativeRobot {
 		autoChooser.addDefault("Left", "L"); //L
 		autoChooser.addObject("Center", "C"); // C
 		autoChooser.addObject("Right", "R"); //R
+		
+		liftEnable.addObject("On", "y");
+		liftEnable.addObject("Off", "n");
 		SmartDashboard.putData("Start Position", autoChooser);
+		SmartDashboard.putData("Lift Enable", liftEnable);
 
 	}
 
@@ -375,7 +380,8 @@ public class Robot extends IterativeRobot {
 
 		SmartDashboard.putNumber("Lift Percent ", percentHeight);
 
-		SmartDashboard.putNumber("Encoder RAW", liftHeightcount.get());
+		SmartDashboard.putNumber("Encoder RAW", liftHeightcount.get);
+		
 		System.out.println(liftHeight);
 
 		//  ******************************  Drive Code  *********************************************
@@ -383,32 +389,36 @@ public class Robot extends IterativeRobot {
 		// ***** Arcade Drive*****
 		// Based on height of lift max speed will be limited by percentage height
 		// Multiplied by 0.5 to slow it down for demo
+		
 		drive.arcadeDrive(mainController.getRawAxis(1) * percentHeight * 0.5, mainController.getRawAxis(4) * percentHeight * 0.5); // Arcade drive:gets axis from controller and sends it to motors
 
 		//  ******************************  Lift Code  **********************************************
 		
-		if (liftHeight < 36){		// Keep it low for demo to avoid tipping
-			if (mainController.getRawAxis(3) > 0 || mainController.getRawAxis(2) > 0) { //3 = right trigger up, 2 = left trigger 
-				if (mainController.getRawAxis(3) > 0 && (halfLimitswitch.get() == true || topLimitswitch.get() == true)) { //If the right trigger is recessed and the half and top limit switches are not pressed 
-					lift.set(ControlMode.PercentOutput, mainController.getRawAxis(3)); //Move up based on the recession of the right trigger
-				} else {
-					lift.set(ControlMode.PercentOutput, 0);
-				}
-				if (mainController.getRawAxis(2) > 0 && bottomLimitswitch.get() == true) { //If the right trigger is recessed and the bottom switch is not pressed
-					if (liftHeight < 6) { //Going down below 20 inches
-						lift.set(ControlMode.PercentOutput, (mainController.getRawAxis(2) * -1) * 0.5); // was .2   Move down based on the recession of the right trigger
+		if(liftEnable.getSelected == "y"){
+			if (liftHeight < 36){		// Keep it low for demo to avoid tipping
+				if (mainController.getRawAxis(3) > 0 || mainController.getRawAxis(2) > 0) { //3 = right trigger up, 2 = left trigger 
+					if (mainController.getRawAxis(3) > 0 && (halfLimitswitch.get() == true || topLimitswitch.get() == true)) { //If the right trigger is recessed and the half and top limit switches are not pressed 
+						lift.set(ControlMode.PercentOutput, mainController.getRawAxis(3)); //Move up based on the recession of the right trigger
 					} else {
-						lift.set(ControlMode.PercentOutput, mainController.getRawAxis(2) * -1); //Move down based on the recession of the right trigger
+						lift.set(ControlMode.PercentOutput, 0);
+					}
+					if (mainController.getRawAxis(2) > 0 && bottomLimitswitch.get() == true) { //If the right trigger is recessed and the bottom switch is not pressed
+						if (liftHeight < 6) { //Going down below 20 inches
+							lift.set(ControlMode.PercentOutput, (mainController.getRawAxis(2) * -1) * 0.5); // was .2   Move down based on the recession of the right trigger
+						} else {
+							lift.set(ControlMode.PercentOutput, mainController.getRawAxis(2) * -1); //Move down based on the recession of the right trigger
+						}
+					}
+				} else {
+					if (liftHeight > 20) { //If the lift is higher than 20 inches
+						lift.set(ControlMode.PercentOutput, 0.1); //Run the lift motor at 10% to keep it up
+					} else {
+						lift.set(ControlMode.PercentOutput, 0); //Otherwise do not run motor
 					}
 				}
-			} else {
-				if (liftHeight > 20) { //If the lift is higher than 20 inches
-					lift.set(ControlMode.PercentOutput, 0.1); //Run the lift motor at 10% to keep it up
-				} else {
-					lift.set(ControlMode.PercentOutput, 0); //Otherwise do not run motor
-				}
-			}
+			}	
 		}
+		
 		// ******************************  Solenoids *********************************************
 
 		// This block creates a one shot toggle for the Clamp Raise
